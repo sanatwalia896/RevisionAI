@@ -1,0 +1,33 @@
+notion-client
+langchain
+langchain_community
+langchain_groq
+langchain_ollama
+langgraph 
+# Notion API client
+notion-client==2.2.0
+
+# LLM frameworks
+openai>=1.0.0  # If using OpenAI for Q&A generation
+langchain>=0.1.0  # RAG pipeline and LLM abstraction
+llama-index>=0.9.0  # Optional: if using LlamaIndex for doc ingestion
+
+# Vector DB options (choose based on your DB)
+qdrant-client>=1.6.0  # For Qdrant vector database
+pymongo>=4.3.3  # If using MongoDB Atlas Vector Search
+
+# Data handling and embedding
+sentence-transformers>=2.2.2  # For generating vector embeddings
+tqdm  # For progress bars when processing content
+python-dotenv  # To load secrets from .env files
+
+# Web deployment (optional for Streamlit)
+streamlit>=1.25.0
+
+# PDF/HTML parsing (optional, if your Notion exports PDFs or you plan future parsing)
+beautifulsoup4
+requests
+langchain_groq 
+faiss-cpu 
+sentence-transformers 
+notion-client
