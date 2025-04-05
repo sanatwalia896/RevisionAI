@@ -7,6 +7,7 @@ from revisionai_rag import RevisionRAG
 from revision_scheduler import check_due_revisions, mark_page_revised
 
 load_dotenv()
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 notion_token = os.getenv("NOTION_TOKEN")
 groq_api_key = os.getenv("GROQ_API_KEY")
@@ -41,11 +42,14 @@ selected = all_pages[selection]
 print(
     f"\n🧠 Building RAG from: {selected['title']} ({len(selected['content'].split())} words)\n"
 )
+
+# Initialize and build RAG pipeline once for the selected page
 rag = RevisionRAG(
     groq_api_key=groq_api_key,
     qdrant_url=qdrant_url,
     qdrant_api_key=qdrant_api_key,
 )
+
 rag.build_rag_from_pages([selected])
 
 while True:
@@ -54,9 +58,10 @@ while True:
         break
     elif q.lower() == "quiz":
         questions = rag.generate_revision_questions(selected["content"])
-        print("📋 Revision Questions:\n", questions)
+        print("\n📋 Revision Questions:\n")
+        print(questions)
         mark_page_revised(selected["title"])  # Mark as revised after quiz
     else:
         answer = rag.ask(q)
-        print("💡", answer)
+        print("\n💡 Answer:\n", answer)
         mark_page_revised(selected["title"])  # Mark as revised after asking

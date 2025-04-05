@@ -32,3 +32,5 @@ faiss-cpu
 sentence-transformers 
 notion-client
 tensorflow==2.14.0
+langchain-qdrant
+qdrant-client 
