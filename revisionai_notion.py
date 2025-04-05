@@ -1,8 +1,14 @@
 # revisionai_notion.py
-
+import os
+import json
 import requests
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
+from dotenv import load_dotenv
+
+load_dotenv()
+
+CACHE_FILE = "cached_pages.json"
 
 
 class NotionPageLoader:
@@ -13,6 +19,30 @@ class NotionPageLoader:
             "Content-Type": "application/json",
             "Notion-Version": "2022-06-28",
         }
+
+    def get_all_page_contents(self) -> List[Dict[str, str]]:
+        if os.path.exists(CACHE_FILE):
+            with open(CACHE_FILE, "r") as f:
+                return json.load(f)
+        else:
+            return []
+
+    def refresh_and_cache_pages(self) -> List[Dict[str, str]]:
+        print("🔄 Syncing Notion pages...")
+        page_ids = self.search_all_pages()
+        all_data = []
+
+        for page_id in page_ids:
+            title = self.get_page_title(page_id)
+            content_blocks = self.get_page_blocks(page_id)
+            content = "\n".join([b["text"] for b in content_blocks])
+            all_data.append({"id": page_id, "title": title, "content": content})
+
+        with open(CACHE_FILE, "w") as f:
+            json.dump(all_data, f, indent=2)
+
+        print("✅ Cached Notion pages.")
+        return all_data
 
     def search_all_pages(self) -> List[str]:
         url = "https://api.notion.com/v1/search"
@@ -85,13 +115,3 @@ class NotionPageLoader:
             text = self.get_block_content(block)
             result.append({"text": text, "timestamp": last_edited})
         return result
-
-    def get_all_page_contents(self) -> List[Dict[str, str]]:
-        page_ids = self.search_all_pages()
-        pages = []
-        for pid in page_ids:
-            title = self.get_page_title(pid)
-            content_blocks = self.get_page_blocks(pid)
-            content = "\n".join([b["text"] for b in content_blocks])
-            pages.append({"id": pid, "title": title, "content": content})
-        return pages

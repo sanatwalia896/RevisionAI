@@ -10,10 +10,22 @@ load_dotenv()
 
 notion_token = os.getenv("NOTION_TOKEN")
 groq_api_key = os.getenv("GROQ_API_KEY")
+qdrant_url = os.getenv("QDRANT_HOST")
+qdrant_api_key = os.getenv("QDRANT_API_KEY")
 
-# Load content from Notion
+# Load Notion pages from cache or refresh
 reader = NotionPageLoader(notion_token)
+
+# Ask to sync and update the cache
+sync = input("Do you want to sync Notion pages? (y/n): ").lower()
+if sync == "y":
+    reader.refresh_and_cache_pages()
+
 all_pages = reader.get_all_page_contents()
+
+if not all_pages:
+    print("No pages found in cache. Please sync first.")
+    exit()
 
 # Show revision reminders
 check_due_revisions()
@@ -29,7 +41,11 @@ selected = all_pages[selection]
 print(
     f"\n🧠 Building RAG from: {selected['title']} ({len(selected['content'].split())} words)\n"
 )
-rag = RevisionRAG(groq_api_key)
+rag = RevisionRAG(
+    groq_api_key=groq_api_key,
+    qdrant_url=qdrant_url,
+    qdrant_api_key=qdrant_api_key,
+)
 rag.build_rag_from_pages([selected])
 
 while True:
