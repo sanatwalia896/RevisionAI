@@ -1,5 +1,3 @@
-# main.py
-
 import os
 from dotenv import load_dotenv
 from revisionai_notion import NotionPageLoader
@@ -13,6 +11,13 @@ notion_token = os.getenv("NOTION_TOKEN")
 groq_api_key = os.getenv("GROQ_API_KEY")
 qdrant_url = os.getenv("QDRANT_HOST")
 qdrant_api_key = os.getenv("QDRANT_API_KEY")
+
+# Initialize the RAG system first, so it loads cached content hashes
+rag = RevisionRAG(
+    groq_api_key=groq_api_key,
+    qdrant_url=qdrant_url,
+    qdrant_api_key=qdrant_api_key,
+)
 
 # Load Notion pages from cache or refresh
 reader = NotionPageLoader(notion_token)
@@ -31,26 +36,63 @@ if not all_pages:
 # Show revision reminders
 check_due_revisions()
 
-# Show available pages
+# Option to update all vectorstore entries
+update_all = input("\nDo you want to check all pages for updates? (y/n): ").lower()
+if update_all == "y":
+    print("\n🔄 Checking all pages for updates and building vectors...")
+    rag.build_rag_from_pages(all_pages)
+
+# Get available topics
+topics = rag.get_available_topics()
+if topics and len(topics) > 1:  # Only show topic selection if multiple topics exist
+    print("\nAvailable Topics:")
+    print("0. All Topics")
+    for i, topic in enumerate(topics):
+        print(f"{i + 1}. {topic}")
+
+    topic_selection = input("\nSelect topic number (or press Enter for all): ")
+    if topic_selection.strip():
+        selected_topic = (
+            "all" if topic_selection == "0" else topics[int(topic_selection) - 1]
+        )
+        rag.set_topic(selected_topic)
+        print(f"🔍 Filtering for topic: {selected_topic}")
+    else:
+        rag.set_topic("all")
+
+# Show available pages (filtered by topic if selected)
+current_topic = rag.current_topic
 print("\nAvailable Pages:")
+filtered_pages = []
 for i, page in enumerate(all_pages):
-    print(f"{i + 1}. {page['title']}")
+    page_topic = rag.extract_topic_from_title(page["title"])
+    if current_topic == "all" or current_topic is None or page_topic == current_topic:
+        filtered_pages.append(page)
+        print(f"{len(filtered_pages)}. {page['title']} (Topic: {page_topic})")
+
+if not filtered_pages:
+    print(f"No pages found for topic: {current_topic}")
+    print("Showing all pages instead:")
+    filtered_pages = all_pages
+    for i, page in enumerate(filtered_pages):
+        page_topic = rag.extract_topic_from_title(page["title"])
+        print(f"{i + 1}. {page['title']} (Topic: {page_topic})")
+    rag.set_topic("all")
 
 selection = int(input("\nSelect page number: ")) - 1
-selected = all_pages[selection]
+selected = filtered_pages[selection]
+selected_topic = rag.extract_topic_from_title(selected["title"])
 
 print(
-    f"\n🧠 Building RAG from: {selected['title']} ({len(selected['content'].split())} words)\n"
+    f"\n🧠 Selected: {selected['title']} (Topic: {selected_topic}, {len(selected['content'].split())} words)\n"
 )
 
-# Initialize and build RAG pipeline once for the selected page
-rag = RevisionRAG(
-    groq_api_key=groq_api_key,
-    qdrant_url=qdrant_url,
-    qdrant_api_key=qdrant_api_key,
-)
+# Only build RAG for the selected page if we didn't update all pages already
+if update_all != "y":
+    rag.build_rag_from_pages([selected], selected_topic)
 
-rag.build_rag_from_pages([selected])
+# Make sure we're using the right topic for the selected page
+rag.set_topic(selected_topic)
 
 while True:
     q = input("Ask a question (or 'quiz' for revision, 'exit' to quit): ")

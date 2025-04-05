@@ -1,8 +1,8 @@
-# revisionai_rag.py
-
 import os
+import json
+from hashlib import md5
 from uuid import uuid4
-from langchain_community.vectorstores.qdrant import QdrantVectorStore
+from langchain_qdrant import QdrantVectorStore
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -19,6 +19,9 @@ from qdrant_client.models import (
     FieldCondition,
     MatchValue,
 )
+
+
+HASH_CACHE_FILE = "page_content_hashes.json"
 
 
 class RevisionRAG:
@@ -39,7 +42,8 @@ class RevisionRAG:
         self.retriever = None
         self.qa_chain = None
         self.qa_with_history = None
-        self.last_loaded_page_title = None
+        self.content_hashes = self._load_content_hashes()
+        self.current_topic = "all"
 
         self.qdrant_client = QdrantClient(
             url=self.qdrant_url,
@@ -47,6 +51,20 @@ class RevisionRAG:
         )
 
         self._ensure_qdrant_collection()
+        self._initialize_vectorstore()
+
+    def _load_content_hashes(self):
+        if os.path.exists(HASH_CACHE_FILE):
+            with open(HASH_CACHE_FILE, "r") as f:
+                return json.load(f)
+        return {}
+
+    def _save_content_hashes(self):
+        with open(HASH_CACHE_FILE, "w") as f:
+            json.dump(self.content_hashes, f, indent=2)
+
+    def _compute_content_hash(self, content):
+        return md5(content.encode("utf-8")).hexdigest()
 
     def _ensure_qdrant_collection(self):
         collections = self.qdrant_client.get_collections().collections
@@ -56,37 +74,39 @@ class RevisionRAG:
                 vectors_config=VectorParams(size=384, distance=Distance.COSINE),
             )
 
-    def build_rag_from_pages(self, pages: list):
-        if len(pages) != 1:
-            raise ValueError("Only one page at a time is supported.")
-
-        page = pages[0]
-
-        if self.last_loaded_page_title == page["title"]:
-            print(f"✅ RAG already built for: {page['title']}")
-            return
-
-        print(f"🔁 Building fresh RAG for: {page['title']}")
-        self.last_loaded_page_title = page["title"]
-
-        # Refresh embeddings
-        self.refresh_page_in_vectorstore(page)
-
-        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-        chunks = splitter.split_text(page["content"])
-        docs = [
-            Document(page_content=chunk, metadata={"page_title": page["title"]})
-            for chunk in chunks
-        ]
-
-        retriever = QdrantVectorStore(
+    def _initialize_vectorstore(self):
+        self.vectorstore = QdrantVectorStore(
             client=self.qdrant_client,
             collection_name=self.collection_name,
-        ).as_retriever(embedding=self.embedding)
+            embedding=self.embedding,
+        )
+        self.retriever = self.vectorstore.as_retriever()
+
+    def build_rag_from_pages(self, pages: list):
+        updated_pages = 0
+        unchanged_pages = 0
+
+        for page in pages:
+            current_hash = self._compute_content_hash(page["content"])
+            if (
+                page["title"] in self.content_hashes
+                and self.content_hashes[page["title"]] == current_hash
+            ):
+                print(f"🔄 No changes detected for page: {page['title']}")
+                unchanged_pages += 1
+                continue
+
+            self.refresh_page_in_vectorstore(page)
+            self.content_hashes[page["title"]] = current_hash
+            updated_pages += 1
+
+        self._save_content_hashes()
+
+        print(f"✅ Updated {updated_pages} pages, {unchanged_pages} pages unchanged")
 
         base_chain = RetrievalQA.from_chain_type(
             llm=self.llm,
-            retriever=retriever,
+            retriever=self.retriever,
             chain_type="stuff",
         )
 
@@ -97,7 +117,11 @@ class RevisionRAG:
             history_messages_key="history",
         )
 
+        return updated_pages > 0
+
     def refresh_page_in_vectorstore(self, page: dict):
+        print(f"⚙️ Updating vectors for page: {page['title']}")
+
         self.qdrant_client.delete(
             collection_name=self.collection_name,
             points_selector=Filter(
@@ -125,11 +149,23 @@ class RevisionRAG:
             collection_name=self.collection_name,
         )
 
-        print(f"🔁 Refreshed page in vectorstore: {page['title']}")
+        print(f"✅ Refreshed page in vectorstore: {page['title']} ({len(docs)} chunks)")
 
     def ask(self, question: str, session_id: str = "default") -> str:
         if self.qa_with_history is None:
-            return "❌ RAG pipeline not initialized."
+            base_chain = RetrievalQA.from_chain_type(
+                llm=self.llm,
+                retriever=self.retriever,
+                chain_type="stuff",
+            )
+
+            self.qa_with_history = RunnableWithMessageHistory(
+                base_chain,
+                lambda session_id: ChatMessageHistory(),
+                input_messages_key="query",
+                history_messages_key="history",
+            )
+
         response = self.qa_with_history.invoke(
             {"query": question},
             config={"configurable": {"session_id": session_id}},
@@ -152,8 +188,35 @@ class RevisionRAG:
                 f"\nContent:\n{chunk}\n"
             )
             response = self.llm.invoke(prompt)
-            all_questions.append(
-                response.content if hasattr(response, "content") else str(response)
-            )
+            if isinstance(response, AIMessage):
+                all_questions.append(response.content)
+            else:
+                all_questions.append(str(response))
 
         return "\n\n".join(all_questions)
+
+    def extract_topic_from_title(self, title: str) -> str:
+        if ":" in title:
+            return title.split(":")[0].strip().lower()
+        elif "-" in title:
+            return title.split("-")[0].strip().lower()
+        else:
+            return "general"
+
+    def get_available_topics(self) -> list:
+        topics = set()
+        for title in self.content_hashes.keys():
+            topics.add(self.extract_topic_from_title(title))
+        return sorted(list(topics))
+
+    def set_topic(self, topic: str):
+        self.current_topic = topic.lower() if topic else "all"
+
+    def filter_pages_by_topic(self, all_pages: list, topic: str) -> list:
+        if not topic or topic.lower() == "all":
+            return all_pages
+        return [
+            page
+            for page in all_pages
+            if self.extract_topic_from_title(page["title"]) == topic.lower()
+        ]
