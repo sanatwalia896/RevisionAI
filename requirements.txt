@@ -31,3 +31,4 @@ langchain_groq
 faiss-cpu 
 sentence-transformers 
 notion-client
+tensorflow==2.14.0
