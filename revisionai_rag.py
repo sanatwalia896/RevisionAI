@@ -48,9 +48,7 @@ class RevisionRAG:
             print("✅ Model downloaded and saved locally.\n")
 
         # Load local model
-        self.embedding = HuggingFaceEmbeddings(
-            model=SentenceTransformer(LOCAL_MODEL_DIR)
-        )
+        self.embedding = HuggingFaceEmbeddings(model_name=LOCAL_MODEL_DIR)
 
         self.llm = ChatGroq(api_key=groq_api_key, model_name="llama3-8b-8192")
         self.qdrant_url = qdrant_url
