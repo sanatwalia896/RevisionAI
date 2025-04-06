@@ -21,7 +21,7 @@ langchain_huggingface
 # Embedding + RAG
 sentence-transformers==2.2.2
 transformers==4.36.2  # Needed for compatibility with sentence-transformers
-torch==2.1.0           # Safe and compatible version
+torch==2.2.0 # Safe and compatible version
 
 # Vector DB
 qdrant-client>=1.6.0
