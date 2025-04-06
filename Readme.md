@@ -107,7 +107,7 @@ We welcome issues, ideas, and PRs. Feel free to open a discussion or contribute!
 
 ## 📄 License
 
-MIT License
+Creative Commons Zero v1.0 Universal
 
 ---
 
