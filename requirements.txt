@@ -1,33 +1,36 @@
-# Core logic & env
-python-dotenv==1.0.1
-tqdm==4.66.2
-requests==2.31.0
+notion-client
+langchain
+langchain_community
+langchain_groq
+langchain_ollama
+langgraph 
+# Notion API client
+notion-client==2.2.0
 
-# Streamlit UI
-streamlit==1.32.2
+# LLM frameworks
+openai>=1.0.0  # If using OpenAI for Q&A generation
+langchain>=0.1.0  # RAG pipeline and LLM abstraction
+llama-index>=0.9.0  # Optional: if using LlamaIndex for doc ingestion
 
-# Notion client
-notion-client==2.2.1     # Updated to latest stable version as of April 2025
+# Vector DB options (choose based on your DB)
+qdrant-client>=1.6.0  # For Qdrant vector database
+pymongo>=4.3.3  # If using MongoDB Atlas Vector Search
 
-# LangChain ecosystem (LangChain v0.3-compatible stack)
-langchain==0.3.0
-langchain-community==0.3.0     # Updated to match langchain version
-langchain-groq==0.1.3
-langchain-ollama==0.1.3        # Updated to latest compatible version
-langgraph==0.2.3              # Updated to more recent stable version
-langchain-qdrant==0.1.2       # Updated to latest compatible version
-langchain-huggingface==0.0.3
+# Data handling and embedding
+sentence-transformers>=2.2.2  # For generating vector embeddings
+tqdm  # For progress bars when processing content
+python-dotenv  # To load secrets from .env files
 
-# Embeddings + RAG
-sentence-transformers==3.0.1  # Updated to latest stable version
-transformers==4.40.1          # Updated to more recent stable version
+# Web deployment (optional for Streamlit)
+streamlit>=1.25.0
 
-# Vector DB
-qdrant-client==1.9.1          # Updated to latest stable version
-
-# Torch (CPU version)
-torch==2.2.2                  # Updated to latest patch version
---extra-index-url https://download.pytorch.org/whl/cpu
-
-# Optional
-beautifulsoup4==4.12.3
+# PDF/HTML parsing (optional, if your Notion exports PDFs or you plan future parsing)
+beautifulsoup4
+requests
+langchain_groq 
+faiss-cpu 
+sentence-transformers 
+notion-client
+tensorflow==2.14.0
+langchain-qdrant
+qdrant-client 
