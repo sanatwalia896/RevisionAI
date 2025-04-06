@@ -34,3 +34,4 @@ beautifulsoup4
 
 # Optional: FAISS only if you switch to it (not needed for Qdrant)
 # faiss-cpu
+langchain_huggingface
