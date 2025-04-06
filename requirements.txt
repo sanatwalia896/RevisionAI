@@ -10,30 +10,21 @@ streamlit>=1.25.0
 notion-client==2.2.0
 
 # LangChain ecosystem
-langchain>=0.1.0
+langchain==0.3.0
 langchain_community
 langchain_groq
 langchain_ollama
 langgraph
 langchain-qdrant
+langchain_huggingface
 
 # Embedding + RAG
-sentence-transformers>=2.2.2
+sentence-transformers==2.2.2
+transformers==4.36.2  # Needed for compatibility with sentence-transformers
+torch==2.1.0           # Safe and compatible version
 
 # Vector DB
 qdrant-client>=1.6.0
 
-# Optional: for MongoDB (you mentioned but not currently used)
-# pymongo>=4.3.3
-
-# Optional parsing support (for future PDF/HTML enhancements)
+# Optional parsing support
 beautifulsoup4
-
-# Optional: only include if you're *actually* using TensorFlow
-# tensorflow==2.14.0
-
-# Optional: FAISS only if you switch to it (not needed for Qdrant)
-# faiss-cpu
-langchain_huggingface
-torch==2.6.0+cpu
---extra-index-url https://download.pytorch.org/whl/cpu
