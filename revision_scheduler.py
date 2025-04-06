@@ -19,23 +19,30 @@ def save_schedule(schedule):
         json.dump(schedule, f, indent=2)
 
 
-def check_due_revisions():
-    schedule = load_schedule()
-    now = datetime.datetime.now()
+def check_due_revisions(*, display=True):
+    with open("revision_schedule.json", "r") as f:
+        schedule_list = json.load(f)
 
     due_pages = []
-    for entry in schedule:
-        last_revised = datetime.datetime.fromisoformat(entry["last_revised"])
-        days_since = (now - last_revised).days
-        if days_since >= REVISION_INTERVAL_DAYS:
-            due_pages.append((entry["page_title"], days_since))
+    today = datetime.datetime.now()
 
-    if due_pages:
-        print("\n🔔 Revision Reminders:")
-        for title, days in due_pages:
-            print(f"- {title}: Last revised {days} day(s) ago")
-    else:
-        print("✅ All pages are up-to-date with revisions!")
+    for item in schedule_list:
+        page_title = item["page_title"]
+        last_revised_str = item["last_revised"]
+        last_revised = datetime.datetime.fromisoformat(last_revised_str)
+        days_since = (today - last_revised).days
+        if days_since >= 3:
+            due_pages.append((page_title, days_since))
+
+    if display:
+        if due_pages:
+            print("\n🔔 Pages due for revision:")
+            for page, days in due_pages:
+                print(f"• {page} (Last revised {days} days ago)")
+        else:
+            print("\n✅ No pages due for revision.")
+
+    return due_pages
 
 
 def mark_page_revised(page_title):

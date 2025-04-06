@@ -20,6 +20,7 @@ from qdrant_client.models import (
     MatchValue,
 )
 
+import datetime
 
 HASH_CACHE_FILE = "page_content_hashes.json"
 
@@ -220,3 +221,27 @@ class RevisionRAG:
             for page in all_pages
             if self.extract_topic_from_title(page["title"]) == topic.lower()
         ]
+
+
+def check_due_revisions(display=True):
+    with open("revision_schedule.json", "r") as f:
+        schedule = json.load(f)
+
+    due_pages = []
+    today = datetime.date.today()
+
+    for page_title, last_revised in schedule.items():
+        last_date = datetime.datetime.strptime(last_revised, "%Y-%m-%d").date()
+        days_since = (today - last_date).days
+        if days_since >= 3:
+            due_pages.append((page_title, days_since))
+
+    if display:
+        if due_pages:
+            print("\n🔔 Pages due for revision:")
+            for page, days in due_pages:
+                print(f"• {page} (Last revised {days} days ago)")
+        else:
+            print("\n✅ No pages due for revision.")
+
+    return due_pages
