@@ -35,3 +35,5 @@ beautifulsoup4
 # Optional: FAISS only if you switch to it (not needed for Qdrant)
 # faiss-cpu
 langchain_huggingface
+torch==2.6.0+cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
