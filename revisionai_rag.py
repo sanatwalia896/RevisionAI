@@ -22,6 +22,9 @@ from qdrant_client.models import (
 )
 from sentence_transformers import SentenceTransformer
 import datetime
+from pathlib import Path
+from sentence_transformers import SentenceTransformer
+
 
 HASH_CACHE_FILE = "page_content_hashes.json"
 LOCAL_MODEL_DIR = "./models/all-MiniLM-L6-v2"
@@ -45,7 +48,9 @@ class RevisionRAG:
             print("✅ Model downloaded and saved locally.\n")
 
         # Load local model
-        self.embedding = HuggingFaceEmbeddings(model_name=LOCAL_MODEL_DIR)
+        self.embedding = HuggingFaceEmbeddings(
+            model=SentenceTransformer(LOCAL_MODEL_DIR)
+        )
 
         self.llm = ChatGroq(api_key=groq_api_key, model_name="llama3-8b-8192")
         self.qdrant_url = qdrant_url
