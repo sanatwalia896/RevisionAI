@@ -1,9 +1,13 @@
 import os
 import json
+import datetime
 from hashlib import md5
 from uuid import uuid4
+from pathlib import Path
+
+from dotenv import load_dotenv
 from langchain_qdrant import QdrantVectorStore
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceInferenceAPIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
@@ -12,6 +16,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.runnables import RunnableConfig
+
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     VectorParams,
@@ -20,15 +25,8 @@ from qdrant_client.models import (
     FieldCondition,
     MatchValue,
 )
-from sentence_transformers import SentenceTransformer
-import datetime
-from pathlib import Path
-from sentence_transformers import SentenceTransformer
-
 
 HASH_CACHE_FILE = "page_content_hashes.json"
-LOCAL_MODEL_DIR = "./models/all-MiniLM-L6-v2"
-MODEL_NAME = "all-MiniLM-L6-v2"  # Your original model
 
 
 class RevisionRAG:
@@ -40,15 +38,14 @@ class RevisionRAG:
         collection_name: str = "revisionai",
     ):
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
+        load_dotenv()
 
-        # Auto-download embedding model if not already downloaded
-        if not os.path.exists(LOCAL_MODEL_DIR):
-            print(f"\n⬇️ Downloading embedding model: {MODEL_NAME} ...")
-            SentenceTransformer(MODEL_NAME).save(LOCAL_MODEL_DIR)
-            print("✅ Model downloaded and saved locally.\n")
+        hf_token = os.getenv("HUGGINGFACE_API_TOKEN")
 
-        # Load local model
-        self.embedding = HuggingFaceEmbeddings(model_name=LOCAL_MODEL_DIR)
+        self.embedding = HuggingFaceInferenceAPIEmbeddings(
+            model_name="thenlper/gte-small",
+            api_key=hf_token,
+        )
 
         self.llm = ChatGroq(api_key=groq_api_key, model_name="llama3-8b-8192")
         self.qdrant_url = qdrant_url
@@ -108,7 +105,7 @@ class RevisionRAG:
                 page["title"] in self.content_hashes
                 and self.content_hashes[page["title"]] == current_hash
             ):
-                print(f"\U0001f501 No changes detected for page: {page['title']}")
+                print(f"🔁 No changes detected for page: {page['title']}")
                 unchanged_pages += 1
                 continue
 
@@ -118,9 +115,7 @@ class RevisionRAG:
 
         self._save_content_hashes()
 
-        print(
-            f"\u2705 Updated {updated_pages} pages, {unchanged_pages} pages unchanged"
-        )
+        print(f"✅ Updated {updated_pages} pages, {unchanged_pages} pages unchanged")
 
         base_chain = RetrievalQA.from_chain_type(
             llm=self.llm,
@@ -138,7 +133,7 @@ class RevisionRAG:
         return updated_pages > 0
 
     def refresh_page_in_vectorstore(self, page: dict):
-        print(f"\u2699\ufe0f Updating vectors for page: {page['title']}")
+        print(f"⚙️ Updating vectors for page: {page['title']}")
 
         self.qdrant_client.delete(
             collection_name=self.collection_name,
@@ -167,9 +162,7 @@ class RevisionRAG:
             collection_name=self.collection_name,
         )
 
-        print(
-            f"\u2705 Refreshed page in vectorstore: {page['title']} ({len(docs)} chunks)"
-        )
+        print(f"✅ Refreshed page in vectorstore: {page['title']} ({len(docs)} chunks)")
 
     def ask(self, question: str, session_id: str = "default") -> str:
         if self.qa_with_history is None:
@@ -278,10 +271,10 @@ def check_due_revisions(display=True):
 
     if display:
         if due_pages:
-            print("\n\U0001f514 Pages due for revision:")
+            print("\n🔔 Pages due for revision:")
             for page, days in due_pages:
-                print(f"\u2022 {page} (Last revised {days} days ago)")
+                print(f"• {page} (Last revised {days} days ago)")
         else:
-            print("\n\u2705 No pages due for revision.")
+            print("\n✅ No pages due for revision.")
 
     return due_pages
