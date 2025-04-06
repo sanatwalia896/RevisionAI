@@ -1,33 +1,33 @@
 # Core logic & env
-python-dotenv
-tqdm
-requests
+python-dotenv==1.0.1
+tqdm==4.66.2
+requests==2.31.0
 
 # Streamlit UI
-streamlit>=1.25.0
+streamlit==1.32.2
 
 # Notion client
 notion-client==2.2.0
 
-# LangChain ecosystem
-langchain
-langchain_community
-langchain_groq
-langchain_ollama
-langgraph
-langchain-qdrant
-langchain_huggingface
+# LangChain ecosystem (LangChain v0.3-compatible stack)
+langchain==0.3.0
+langchain_community==0.0.29
+langchain_groq==0.1.3
+langchain_ollama==0.1.1
+langgraph==0.0.30
+langchain-qdrant==0.1.0
+langchain_huggingface==0.0.3
 
 # Embeddings + RAG
-sentence-transformers
-transformers=needs
+sentence-transformers==2.7.0
+transformers==4.39.3
 
 # Vector DB
-qdrant-client>=1.6.0
+qdrant-client==1.6.0
 
-# Torch (needed for sentence-transformers & huggingface)
+# Torch (CPU version)
 torch==2.2.1
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Optional
-beautifulsoup4
+beautifulsoup4==4.12.3
