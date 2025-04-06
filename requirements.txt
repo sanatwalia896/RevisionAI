@@ -10,17 +10,17 @@ streamlit>=1.25.0
 notion-client==2.2.0
 
 # LangChain ecosystem
-langchain==0.3.0
+langchain
 langchain_community
 langchain_groq
 langchain_ollama
 langgraph
 langchain-qdrant
-langchain_huggingface==0.1.2
+langchain_huggingface
 
 # Embeddings + RAG
-sentence-transformers==2.2.2
-transformers==4.39.1  # Match with langchain_huggingface needs
+sentence-transformers
+transformers=needs
 
 # Vector DB
 qdrant-client>=1.6.0
