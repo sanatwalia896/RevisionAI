@@ -19,7 +19,6 @@ from qdrant_client.models import (
     FieldCondition,
     MatchValue,
 )
-
 import datetime
 
 HASH_CACHE_FILE = "page_content_hashes.json"
@@ -34,6 +33,8 @@ class RevisionRAG:
         collection_name: str = "revisionai",
         embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
     ):
+        os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
         self.embedding = HuggingFaceEmbeddings(model_name=embedding_model_name)
         self.llm = ChatGroq(api_key=groq_api_key, model_name="llama3-8b-8192")
         self.qdrant_url = qdrant_url
@@ -93,7 +94,7 @@ class RevisionRAG:
                 page["title"] in self.content_hashes
                 and self.content_hashes[page["title"]] == current_hash
             ):
-                print(f"🔄 No changes detected for page: {page['title']}")
+                print(f"\U0001f501 No changes detected for page: {page['title']}")
                 unchanged_pages += 1
                 continue
 
@@ -103,7 +104,9 @@ class RevisionRAG:
 
         self._save_content_hashes()
 
-        print(f"✅ Updated {updated_pages} pages, {unchanged_pages} pages unchanged")
+        print(
+            f"\u2705 Updated {updated_pages} pages, {unchanged_pages} pages unchanged"
+        )
 
         base_chain = RetrievalQA.from_chain_type(
             llm=self.llm,
@@ -121,7 +124,7 @@ class RevisionRAG:
         return updated_pages > 0
 
     def refresh_page_in_vectorstore(self, page: dict):
-        print(f"⚙️ Updating vectors for page: {page['title']}")
+        print(f"\u2699\ufe0f Updating vectors for page: {page['title']}")
 
         self.qdrant_client.delete(
             collection_name=self.collection_name,
@@ -150,7 +153,9 @@ class RevisionRAG:
             collection_name=self.collection_name,
         )
 
-        print(f"✅ Refreshed page in vectorstore: {page['title']} ({len(docs)} chunks)")
+        print(
+            f"\u2705 Refreshed page in vectorstore: {page['title']} ({len(docs)} chunks)"
+        )
 
     def ask(self, question: str, session_id: str = "default") -> str:
         if self.qa_with_history is None:
@@ -238,10 +243,10 @@ def check_due_revisions(display=True):
 
     if display:
         if due_pages:
-            print("\n🔔 Pages due for revision:")
+            print("\n\U0001f514 Pages due for revision:")
             for page, days in due_pages:
-                print(f"• {page} (Last revised {days} days ago)")
+                print(f"\u2022 {page} (Last revised {days} days ago)")
         else:
-            print("\n✅ No pages due for revision.")
+            print("\n\u2705 No pages due for revision.")
 
     return due_pages
