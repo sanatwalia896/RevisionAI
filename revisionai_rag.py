@@ -11,6 +11,7 @@ from langchain_groq import ChatGroq
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.runnables import RunnableConfig
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     VectorParams,
@@ -19,6 +20,7 @@ from qdrant_client.models import (
     FieldCondition,
     MatchValue,
 )
+from sentence_transformers import SentenceTransformer
 import datetime
 
 HASH_CACHE_FILE = "page_content_hashes.json"
@@ -31,11 +33,15 @@ class RevisionRAG:
         qdrant_url: str,
         qdrant_api_key: str,
         collection_name: str = "revisionai",
-        embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
     ):
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-        self.embedding = HuggingFaceEmbeddings(model_name=embedding_model_name)
+        # Load local sentence-transformers model
+        local_model_path = "./models/all-MiniLM-L6-v2"
+        self.embedding = HuggingFaceEmbeddings(
+            model=SentenceTransformer(local_model_path)
+        )
+
         self.llm = ChatGroq(api_key=groq_api_key, model_name="llama3-8b-8192")
         self.qdrant_url = qdrant_url
         self.qdrant_api_key = qdrant_api_key
@@ -177,6 +183,27 @@ class RevisionRAG:
             config={"configurable": {"session_id": session_id}},
         )
         return response
+
+    def ask_streaming(self, question: str, session_id: str = "default"):
+        if self.qa_with_history is None:
+            base_chain = RetrievalQA.from_chain_type(
+                llm=self.llm,
+                retriever=self.retriever,
+                chain_type="stuff",
+            )
+
+            self.qa_with_history = RunnableWithMessageHistory(
+                base_chain,
+                lambda session_id: ChatMessageHistory(),
+                input_messages_key="query",
+                history_messages_key="history",
+            )
+
+        config: RunnableConfig = {
+            "configurable": {"session_id": session_id},
+            "stream": True,
+        }
+        return self.qa_with_history.stream({"query": question}, config=config)
 
     def generate_revision_questions(self, content: str) -> str:
         splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=100)

@@ -16,7 +16,6 @@ def initialize_environment():
     load_dotenv()
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-    # Check for required environment variables
     required_vars = ["NOTION_TOKEN", "GROQ_API_KEY", "QDRANT_HOST", "QDRANT_API_KEY"]
     missing_vars = [var for var in required_vars if not os.getenv(var)]
 
@@ -45,7 +44,7 @@ def initialize_services(env_vars):
         st.stop()
 
 
-# Function to get all pages with error handling
+# Load all Notion pages
 def get_all_pages(reader):
     try:
         return reader.get_all_page_contents()
@@ -54,11 +53,11 @@ def get_all_pages(reader):
         return []
 
 
-# Initialize environment and services
+# Initialize
 env_vars = initialize_environment()
 rag, reader = initialize_services(env_vars)
 
-# Initialize session state
+# Session State
 if "selected_page" not in st.session_state:
     st.session_state.selected_page = None
 if "selected_topic" not in st.session_state:
@@ -72,15 +71,14 @@ if "answer_history" not in st.session_state:
 if "show_page_content" not in st.session_state:
     st.session_state.show_page_content = False
 
-# Main app layout
+# Title
 st.title("🧠 RevisionAI")
 st.caption("Your AI-powered study assistant")
 
-# Sidebar for settings and tools
+# Sidebar
 with st.sidebar:
     st.header("Tools & Settings")
 
-    # Sync option
     if st.button("🔄 Sync Notion Pages", use_container_width=True):
         with st.spinner("Syncing pages from Notion..."):
             try:
@@ -90,7 +88,6 @@ with st.sidebar:
             except Exception as e:
                 st.error(f"Sync failed: {str(e)}")
 
-    # Option to update vectors
     if st.button("🧠 Rebuild Vectorstore", use_container_width=True):
         with st.spinner("Building vector embeddings..."):
             try:
@@ -99,7 +96,6 @@ with st.sidebar:
             except Exception as e:
                 st.error(f"Vector store update failed: {str(e)}")
 
-    # Show revision reminders in sidebar
     st.subheader("🔔 Revision Reminders")
     due = check_due_revisions(display=False)
     if due:
@@ -108,33 +104,30 @@ with st.sidebar:
     else:
         st.info("No revisions due today!")
 
-    # Stats
     st.subheader("📊 Statistics")
     st.metric("Total Pages", len(st.session_state.all_pages))
 
-    # Help information
     with st.expander("ℹ️ Help"):
         st.markdown(
             """
-        **How to use RevisionAI:**
-        1. Select a topic and page from your Notion workspace
-        2. Ask questions or generate revision quizzes
-        3. Review and learn from AI-generated answers
-        
-        **Commands:**
-        - Type 'quiz' to generate revision questions
-        - Use clear, specific questions for best results
-        """
+            **How to use RevisionAI:**
+            1. Select a topic and page from your Notion workspace
+            2. Ask questions or generate revision quizzes
+            3. Review and learn from AI-generated answers
+
+            **Commands:**
+            - Type 'quiz' to generate revision questions
+            - Use clear, specific questions for best results
+            """
         )
 
-# Main content area - Two columns layout
+# Main layout
 col1, col2 = st.columns([1, 2])
 
-# Left column - Page selection
+# Left Column - Page Selection
 with col1:
     st.subheader("📚 Select Content")
 
-    # Topic selection
     try:
         topics = rag.get_available_topics()
         selected_topic = st.selectbox(
@@ -152,15 +145,12 @@ with col1:
         st.error(f"Error loading topics: {str(e)}")
         selected_topic = "all"
 
-    # Filter pages
     filtered_pages = rag.filter_pages_by_topic(
         st.session_state.all_pages, selected_topic
     )
 
     if not filtered_pages:
-        st.warning(
-            "No pages found for this topic. Try syncing with Notion or selecting a different topic."
-        )
+        st.warning("No pages found for this topic.")
     else:
         titles = [page["title"] for page in filtered_pages]
         selected_title = st.selectbox("Select a page", titles)
@@ -173,18 +163,15 @@ with col1:
             selected_topic = rag.extract_topic_from_title(selected_page["title"])
             rag.set_topic(selected_topic)
 
-            # Page info
             st.success(f"✅ Selected: {selected_page['title']}")
             word_count = len(selected_page["content"].split())
             st.caption(f"Word count: {word_count}")
 
-            # Option to load into vectorstore
             if st.button("📥 Load Page into Vector Store", use_container_width=True):
                 with st.spinner("Loading page vectors..."):
                     rag.build_rag_from_pages([selected_page])
                     st.success("✅ Page vectors refreshed")
 
-            # Toggle to show page content
             st.session_state.show_page_content = st.toggle(
                 "Show page content", st.session_state.show_page_content
             )
@@ -200,24 +187,21 @@ with col1:
                             "Content truncated. Full content used for AI responses."
                         )
 
-# Right column - Q&A interaction
+# Right Column - Interaction
 with col2:
     if st.session_state.selected_page:
         st.subheader("💬 Ask or Revise")
 
-        # Input and submit
         with st.form("question_form", clear_on_submit=False):
             st.session_state.question_input = st.text_input(
                 "Ask a question or type 'quiz' to generate revision questions",
                 value=st.session_state.question_input,
             )
             col1, col2 = st.columns([1, 1])
-
             with col1:
                 submit_button = st.form_submit_button(
                     "🚀 Submit", use_container_width=True
                 )
-
             with col2:
                 clear_button = st.form_submit_button(
                     "🧹 Clear History", use_container_width=True
@@ -229,7 +213,6 @@ with col2:
         if submit_button:
             question = st.session_state.question_input.strip()
             if question:
-                # Handle quiz generation
                 if question.lower() == "quiz":
                     st.subheader("📋 Revision Questions")
                     with st.spinner("Generating revision questions..."):
@@ -247,8 +230,6 @@ with col2:
                             st.session_state.question_input = ""
                         except Exception as e:
                             st.error(f"Error generating questions: {str(e)}")
-
-                # Handle regular questions
                 else:
                     st.subheader("💡 Answer")
                     answer_container = st.empty()
@@ -259,7 +240,6 @@ with col2:
                                 full_answer += chunk
                                 answer_container.markdown(full_answer)
 
-                        # Save to history
                         st.session_state.answer_history.append(
                             {"type": "qa", "question": question, "answer": full_answer}
                         )
@@ -268,7 +248,6 @@ with col2:
                     except Exception as e:
                         st.error(f"Error generating answer: {str(e)}")
 
-        # Display history
         if st.session_state.answer_history:
             st.subheader("📜 History")
             for i, item in enumerate(reversed(st.session_state.answer_history)):
@@ -285,4 +264,4 @@ with col2:
                     else:
                         st.markdown(item["answer"])
     else:
-        st.info("👈 Select a page from your Notion workspace to get started")
+        st.info("👈 Select a page from your Notion workspace to get started.")
