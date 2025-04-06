@@ -1,4 +1,4 @@
-# Core logic & environment
+# Core logic & env
 python-dotenv
 tqdm
 requests
@@ -16,15 +16,18 @@ langchain_groq
 langchain_ollama
 langgraph
 langchain-qdrant
-langchain_huggingface
+langchain_huggingface==0.1.2
 
-# Embedding + RAG
+# Embeddings + RAG
 sentence-transformers==2.2.2
-transformers==4.36.2  # Needed for compatibility with sentence-transformers
-torch==2.2.0 # Safe and compatible version
+transformers==4.39.1  # Match with langchain_huggingface needs
 
 # Vector DB
 qdrant-client>=1.6.0
 
-# Optional parsing support
+# Torch (needed for sentence-transformers & huggingface)
+torch==2.2.1
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# Optional
 beautifulsoup4
