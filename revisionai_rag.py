@@ -24,6 +24,8 @@ from sentence_transformers import SentenceTransformer
 import datetime
 
 HASH_CACHE_FILE = "page_content_hashes.json"
+LOCAL_MODEL_DIR = "./models/all-MiniLM-L6-v2"
+MODEL_NAME = "all-MiniLM-L6-v2"  # Your original model
 
 
 class RevisionRAG:
@@ -36,11 +38,14 @@ class RevisionRAG:
     ):
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-        # Load local sentence-transformers model
-        local_model_path = "./models/all-MiniLM-L6-v2"
-        self.embedding = HuggingFaceEmbeddings(
-            model=SentenceTransformer(local_model_path)
-        )
+        # Auto-download embedding model if not already downloaded
+        if not os.path.exists(LOCAL_MODEL_DIR):
+            print(f"\n⬇️ Downloading embedding model: {MODEL_NAME} ...")
+            SentenceTransformer(MODEL_NAME).save(LOCAL_MODEL_DIR)
+            print("✅ Model downloaded and saved locally.\n")
+
+        # Load local model
+        self.embedding = HuggingFaceEmbeddings(model_name=LOCAL_MODEL_DIR)
 
         self.llm = ChatGroq(api_key=groq_api_key, model_name="llama3-8b-8192")
         self.qdrant_url = qdrant_url
