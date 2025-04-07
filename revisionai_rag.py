@@ -28,7 +28,6 @@ from qdrant_client.models import (
     FieldCondition,
     MatchValue,
 )
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -153,10 +152,11 @@ class RevisionRAG:
         splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         chunks = splitter.split_text(page["content"])
 
-        docs = [
-            Document(page_content=chunk, metadata={"page_title": page["title"]})
-            for chunk in chunks
-        ]
+        docs = []
+        for chunk in chunks:
+            docs.append(
+                Document(page_content=chunk, metadata={"page_title": page["title"]})
+            )
 
         QdrantVectorStore.from_documents(
             documents=docs,
