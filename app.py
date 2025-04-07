@@ -232,21 +232,19 @@ with col2:
                             st.error(f"Error generating questions: {str(e)}")
                 else:
                     st.subheader("💡 Answer")
-                    answer_container = st.empty()
-                    try:
-                        full_answer = ""
-                        with st.spinner("Thinking..."):
-                            for chunk in rag.ask(question, stream=True):
-                                full_answer += chunk
-                                answer_container.markdown(full_answer)
+                    with st.spinner("Thinking..."):
+                        try:
+                            answer = rag.ask(question)
+                            st.markdown(answer)
 
-                        st.session_state.answer_history.append(
-                            {"type": "qa", "question": question, "answer": full_answer}
-                        )
-                        mark_page_revised(st.session_state.selected_page["title"])
-                        st.session_state.question_input = ""
-                    except Exception as e:
-                        st.error(f"Error generating answer: {str(e)}")
+                            # Store in history
+                            st.session_state.answer_history.append(
+                                {"type": "qa", "question": question, "answer": answer}
+                            )
+                            mark_page_revised(st.session_state.selected_page["title"])
+                            st.session_state.question_input = ""
+                        except Exception as e:
+                            st.error(f"Error generating answer: {str(e)}")
 
         if st.session_state.answer_history:
             st.subheader("📜 History")

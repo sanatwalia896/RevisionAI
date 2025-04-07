@@ -148,16 +148,19 @@ class RevisionRAG:
 
         print(f"✅ Refreshed page in vectorstore: {title} ({len(docs)} chunks)")
 
-    def ask(self, question: str, session_id: str = "default", stream: bool = False):
+    def ask(self, question: str, session_id: str = "default"):
         self._ensure_qa_with_history()
         config: RunnableConfig = {
             "configurable": {"session_id": session_id},
         }
 
-        if stream:
-            return self.qa_with_history.stream({"query": question}, config=config)
-        else:
-            return self.qa_with_history.invoke({"query": question}, config=config)
+        result = self.qa_with_history.invoke({"query": question}, config=config)
+
+        # If the result is a dict with an answer key, return that
+        if isinstance(result, dict) and "answer" in result:
+            return result["answer"]
+        # Otherwise return the result as is
+        return result
 
     def generate_revision_questions(self, content: str) -> str:
         splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=100)
