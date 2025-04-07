@@ -234,7 +234,8 @@ with col2:
                     st.subheader("💡 Answer")
                     with st.spinner("Thinking..."):
                         try:
-                            answer = rag.ask(question)
+                            response = rag.ask(question)
+                            answer = response["result"]
                             st.markdown(answer)
 
                             # Store in history
