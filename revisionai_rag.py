@@ -8,10 +8,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_qdrant import QdrantVectorStore
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 
-from langchain.chains import RetrievalQA
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.docstore.document import Document
+from langchain.chains.retrieval_qa.base import RetrievalQA
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
+
 from langchain_groq import ChatGroq
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -44,7 +46,8 @@ class RevisionRAG:
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
         load_dotenv()
 
-        self.embedding = HuggingFaceEmbeddings(
+        self.embedding = HuggingFaceInferenceAPIEmbeddings(
+            api_key=os.getenv("HUGGINGFACE_TOKEN"),
             model_name="sentence-transformers/all-MiniLM-L6-v2",
         )
 
