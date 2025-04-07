@@ -169,28 +169,28 @@ class RevisionRAG:
 
         print(f"✅ Refreshed page in vectorstore: {page['title']} ({len(docs)} chunks)")
 
-    def ask(self, question: str, session_id: str = "default") -> str:
-        if self.qa_with_history is None:
-            base_chain = RetrievalQA.from_chain_type(
-                llm=self.llm,
-                retriever=self.retriever,
-                chain_type="stuff",
-            )
+    # def ask(self, question: str, session_id: str = "default") -> str:
+    #     if self.qa_with_history is None:
+    #         base_chain = RetrievalQA.from_chain_type(
+    #             llm=self.llm,
+    #             retriever=self.retriever,
+    #             chain_type="stuff",
+    #         )
 
-            self.qa_with_history = RunnableWithMessageHistory(
-                base_chain,
-                lambda session_id: ChatMessageHistory(),
-                input_messages_key="query",
-                history_messages_key="history",
-            )
+    #         self.qa_with_history = RunnableWithMessageHistory(
+    #             base_chain,
+    #             lambda session_id: ChatMessageHistory(),
+    #             input_messages_key="query",
+    #             history_messages_key="history",
+    #         )
 
-        response = self.qa_with_history.invoke(
-            {"query": question},
-            config={"configurable": {"session_id": session_id}},
-        )
-        return response
+    #     response = self.qa_with_history.invoke(
+    #         {"query": question},
+    #         config={"configurable": {"session_id": session_id}},
+    #     )
+    #     return response
 
-    def ask_streaming(self, question: str, session_id: str = "default"):
+    def ask(self, question: str, session_id: str = "default"):
         if self.qa_with_history is None:
             base_chain = RetrievalQA.from_chain_type(
                 llm=self.llm,
