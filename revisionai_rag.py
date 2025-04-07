@@ -154,7 +154,10 @@ class RevisionRAG:
             "configurable": {"session_id": session_id},
         }
 
-        return self.qa_with_history.invoke({"query": question}, config=config)
+        if stream:
+            return self.qa_with_history.stream({"query": question}, config=config)
+        else:
+            return self.qa_with_history.invoke({"query": question}, config=config)
 
     def generate_revision_questions(self, content: str) -> str:
         splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=100)
