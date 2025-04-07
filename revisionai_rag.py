@@ -152,11 +152,8 @@ class RevisionRAG:
         self._ensure_qa_with_history()
         config: RunnableConfig = {
             "configurable": {"session_id": session_id},
-            "stream": stream,
         }
 
-        if stream:
-            return self.qa_with_history.stream({"query": question}, config=config)
         return self.qa_with_history.invoke({"query": question}, config=config)
 
     def generate_revision_questions(self, content: str) -> str:
