@@ -138,13 +138,7 @@ class RevisionRAG:
             for chunk in chunks
         ]
 
-        QdrantVectorStore.from_documents(
-            documents=docs,
-            embedding=self.embedding,
-            url=self.qdrant_client.url,
-            api_key=self.qdrant_client.api_key,
-            collection_name=self.collection_name,
-        )
+        self.vectorstore.add_documents(docs)
 
         print(f"✅ Refreshed page in vectorstore: {title} ({len(docs)} chunks)")
 
@@ -156,10 +150,8 @@ class RevisionRAG:
 
         result = self.qa_with_history.invoke({"query": question}, config=config)
 
-        # If the result is a dict with an answer key, return that
         if isinstance(result, dict) and "answer" in result:
             return result["answer"]
-        # Otherwise return the result as is
         return result
 
     def generate_revision_questions(self, content: str) -> str:
