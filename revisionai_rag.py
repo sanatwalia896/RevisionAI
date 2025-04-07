@@ -7,8 +7,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_qdrant import QdrantVectorStore
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_community.embeddings import (
+    HuggingFaceInferenceAPIEmbeddings,
+)  # Only this, no HuggingFaceEmbeddings
 
 from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain_text_splitters import RecursiveCharacterTextSplitter
