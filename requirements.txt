@@ -34,3 +34,4 @@ notion-client
 
 langchain-qdrant
 qdrant-client 
+dotenv

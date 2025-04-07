@@ -7,7 +7,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_qdrant import QdrantVectorStore
-from langchain_huggingface import HuggingFaceInferenceAPIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
@@ -25,6 +26,9 @@ from qdrant_client.models import (
     FieldCondition,
     MatchValue,
 )
+from dotenv import load_dotenv
+
+load_dotenv()
 
 HASH_CACHE_FILE = "page_content_hashes.json"
 
@@ -40,11 +44,8 @@ class RevisionRAG:
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
         load_dotenv()
 
-        hf_token = os.getenv("HUGGINGFACE_API_TOKEN")
-
-        self.embedding = HuggingFaceInferenceAPIEmbeddings(
-            model_name="thenlper/gte-small",
-            api_key=hf_token,
+        self.embedding = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
         )
 
         self.llm = ChatGroq(api_key=groq_api_key, model_name="llama3-8b-8192")
